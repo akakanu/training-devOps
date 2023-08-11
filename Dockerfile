@@ -1,25 +1,27 @@
-#Grab the latest alpine image
-FROM alpine:latest
+FROM python:2.7
 
-# Install python and pip
-RUN apk add --no-cache --update python3 py3-pip bash
-ADD ./webapp/requirements.txt /tmp/requirements.txt
+# Creating Application Source Code Directory
+RUN mkdir -p /usr/src/app
 
-# Install dependencies
-RUN pip3 install --no-cache-dir -q -r /tmp/requirements.txt
+# Setting Home Directory for containers
+WORKDIR /usr/src/app
 
-# Add our code
-ADD ./webapp /opt/webapp/
-WORKDIR /opt/webapp
+# Installing python dependencies
+COPY requirements.txt /usr/src/app/
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Expose is NOT supported by Heroku
-# EXPOSE 5000 		
+# Copying src code to Container
+COPY . /usr/src/app
 
-# Run the image as a non-root user
-RUN adduser -D myuser
-USER myuser
+# Application Environment variables
+#ENV APP_ENV development
+ENV PORT 8080
 
-# Run the app.  CMD is required to run on Heroku
-# $PORT is set by Heroku			
-CMD gunicorn --bind 0.0.0.0:$PORT wsgi 
+# Exposing Ports
+EXPOSE $PORT
 
+# Setting Persistent data
+VOLUME ["/app-data"]
+
+# Running Python Application
+CMD gunicorn -b :$PORT -c gunicorn.conf.py main:app
